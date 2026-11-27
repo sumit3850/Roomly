@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 200 25% 98%;
+    --foreground: 200 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 40% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 40% 10%;
+    --primary: 190 77% 24%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 185 40% 92%;
+    --secondary-foreground: 190 77% 18%;
+    --muted: 200 20% 94%;
+    --muted-foreground: 200 12% 42%;
+    --accent: 185 45% 93%;
+    --accent-foreground: 190 77% 18%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 32%;
+    --success-foreground: 0 0% 100%;
+    --border: 200 20% 88%;
+    --input: 200 18% 84%;
+    --ring: 190 77% 30%;
+    --radius: 0.65rem;
+  }
+  * { @apply border-border; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: 'cv11', 'ss01'; }
+}
+
+.leaflet-container { font-family: inherit; z-index: 0; }
+.leaflet-popup-content { margin: 10px 12px; }
+.price-marker {
+  background: hsl(var(--primary)); color: #fff; font-weight: 700; font-size: 11px;
+  padding: 3px 7px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  border: 2px solid #fff; transform: translate(-50%, -50%); display: inline-block;
+}
+.price-marker.active { background: hsl(var(--destructive)); }

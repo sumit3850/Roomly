@@ -1,0 +1,60 @@
+-- Newspaper TO LET archive: classifieds transcribed from Daily Telegrams (Port Blair)
+-- editions of 24, 26 and 27 Nov 2026. These are real published adverts, stored as
+-- archive records (newspaper_advertisements), never as marketplace properties.
+-- Run after the migrations:  psql "$DATABASE_URL" -f supabase/seed.sql
+insert into public.newspaper_publications (name, newspaper, edition_date, status) values
+  ('Daily Telegrams — Nov 24, 2026', 'Daily Telegrams', '2026-11-24', 'processed'),
+  ('Daily Telegrams — Nov 26, 2026', 'Daily Telegrams', '2026-11-26', 'processed'),
+  ('Daily Telegrams — Nov 27, 2026', 'Daily Telegrams', '2026-11-27', 'processed')
+on conflict (newspaper, edition_date) do nothing;
+
+insert into public.newspaper_advertisements (publication_id, ad_type, configuration, location_text, phones, rent_text, is_commercial, is_furnished, raw_text)
+select p.id, v.ad_type, v.configuration, v.location_text, v.phones, v.rent_text, v.is_commercial, v.is_furnished, v.raw_text
+from (values
+  ('2026-11-26'::date, 'tolet', 'Single Room', 'Vidya Sagar Colony, Garacharma Basti', array['+919434272063','+919933260520']::text[], '₹6,500', false, false, 'TO LET: Single Room — Vidya Sagar Colony, Garacharma Basti — ₹6,500. Contact 9434272063 / 9933260520'),
+  ('2026-11-26'::date, 'tolet', '1 BHK', 'Bhatubasti, Opp Vegetable Market, Near Ganesh Market (+ RCC Godown)', array['+919474265768','+919933217202']::text[], null, false, false, 'TO LET: 1 BHK — Bhatubasti, Opp Vegetable Market, Near Ganesh Market (+ RCC Godown). Contact 9474265768 / 9933217202'),
+  ('2026-11-26'::date, 'commercial', 'Commercial', 'School Line Main Road, 2nd Floor (1500 Sq.Ft.)', array['+919933218096','+919933224854']::text[], null, true, false, 'TO LET: Commercial — School Line Main Road, 2nd Floor (1500 Sq.Ft.). Contact 9933218096 / 9933224854'),
+  ('2026-11-26'::date, 'tolet', '1 BHK', 'Netaji Nagar, near Ganesh Temple, Kamaraj Nagar', array['+919474261648']::text[], null, false, false, 'TO LET: 1 BHK — Netaji Nagar, near Ganesh Temple, Kamaraj Nagar. Contact 9474261648'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', '2nd Floor, Naushad Colony, Bhatu Basti', array['+919933258511']::text[], null, false, false, 'TO LET: 2 BHK — 2nd Floor, Naushad Colony, Bhatu Basti. Contact 9933258511'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', 'G/F, Bhatu Basti, Gandhi Housing Society St 1', array['+919679505393','+919531808711']::text[], '₹15,000', false, false, 'TO LET: 2 BHK — G/F, Bhatu Basti, Gandhi Housing Society St 1 — ₹15,000. Contact 9679505393 / 9531808711'),
+  ('2026-11-26'::date, 'tolet', '1 BHK', 'Teylorabad (RSN), Near Mini Mart', array['+919933270947']::text[], null, false, false, 'TO LET: 1 BHK — Teylorabad (RSN), Near Mini Mart. Contact 9933270947'),
+  ('2026-11-26'::date, 'tolet', 'Other', 'Haddo Sea Shore Road, Near Masjid (Semi RCC)', array['+919933224055','+919933227930']::text[], null, false, false, 'TO LET: Other — Haddo Sea Shore Road, Near Masjid (Semi RCC). Contact 9933224055 / 9933227930'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', 'G/Floor, Dollygunj, Near Post Office', array['+919476039397','+917063919443']::text[], '₹11,000', false, false, 'TO LET: 2 BHK — G/Floor, Dollygunj, Near Post Office — ₹11,000. Contact 9476039397 / 7063919443'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', 'G/F, well-furnished, Bhatubasti, Garacharma-I, Near Naushad Colony', array['+919933273810']::text[], null, false, true, 'TO LET: 2 BHK — G/F, well-furnished, Bhatubasti, Garacharma-I, Near Naushad Colony. Contact 9933273810'),
+  ('2026-11-26'::date, 'tolet', '1 BHK', '3rd Floor, Junglighat', array['+918900980011','+919434281281']::text[], null, false, false, 'TO LET: 1 BHK — 3rd Floor, Junglighat. Contact 8900980011 / 9434281281'),
+  ('2026-11-26'::date, 'tolet', '1 BHK', 'Dollygunj, Near ICMR, 24 Hrs Water', array['+919933295009','+919933278062']::text[], null, false, false, 'TO LET: 1 BHK — Dollygunj, Near ICMR, 24 Hrs Water. Contact 9933295009 / 9933278062'),
+  ('2026-11-26'::date, 'commercial', 'Commercial', 'Near Electricity Site Office, Kali Mandir Rd, Prem Nagar (126 Sq.Mtrs.)', array['+919564781505']::text[], null, true, false, 'TO LET: Commercial — Near Electricity Site Office, Kali Mandir Rd, Prem Nagar (126 Sq.Mtrs.). Contact 9564781505'),
+  ('2026-11-26'::date, 'commercial', 'Commercial', 'Opp. Rukmani Motors, Dollygunj (Godown 1100 Sq.Ft.)', array['+918900980011','+919434281281']::text[], null, true, false, 'TO LET: Commercial — Opp. Rukmani Motors, Dollygunj (Godown 1100 Sq.Ft.). Contact 8900980011 / 9434281281'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', 'South Point, Behind Mosque (Studio + 2 BHK)', array['+918918678580','+919933202235']::text[], null, false, false, 'TO LET: 2 BHK — South Point, Behind Mosque (Studio + 2 BHK). Contact 8918678580 / 9933202235'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', 'Loknath Colony, Opp. Polytechnic, Dollygunj', array['+919474247707']::text[], null, false, false, 'TO LET: 2 BHK — Loknath Colony, Opp. Polytechnic, Dollygunj. Contact 9474247707'),
+  ('2026-11-26'::date, 'tolet', 'Other', 'Near Andaman Aluminium, Junglighat (2 Rooms)', array['+919679500474','+917063963691']::text[], '₹7,000/room', false, false, 'TO LET: Other — Near Andaman Aluminium, Junglighat (2 Rooms) — ₹7,000/room. Contact 9679500474 / 7063963691'),
+  ('2026-11-26'::date, 'tolet', '2 BHK', '2nd Floor, Delanipur Main Road', array['+919679537775']::text[], null, false, false, 'TO LET: 2 BHK — 2nd Floor, Delanipur Main Road. Contact 9679537775'),
+  ('2026-11-27'::date, 'tolet', '1 BHK', 'Garacharma (1 BHK & 2 BHK available)', array['+919679573374','+918900978110']::text[], null, false, false, 'TO LET: 1 BHK — Garacharma (1 BHK & 2 BHK available). Contact 9679573374 / 8900978110'),
+  ('2026-11-27'::date, 'tolet', '3 BHK', 'School Line', array['+919474294535','+919531802202']::text[], null, false, false, 'TO LET: 3 BHK — School Line. Contact 9474294535 / 9531802202'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'G/F, Near CARI gate, fully tiled, Bhatubasti', array['+919474219471']::text[], null, false, false, 'TO LET: 2 BHK — G/F, Near CARI gate, fully tiled, Bhatubasti. Contact 9474219471'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Near 2nd Gate DBRAIT, Dollygunj (Double Bed Flat)', array['+919933230693','+917695040556']::text[], '₹15,000', false, false, 'TO LET: 2 BHK — Near 2nd Gate DBRAIT, Dollygunj (Double Bed Flat) — ₹15,000. Contact 9933230693 / 7695040556'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Citizen Colony, Lambaline, near Lemon Tree Hotel (2 units)', array['+919434285198','+919434284029']::text[], null, false, false, 'TO LET: 2 BHK — Citizen Colony, Lambaline, near Lemon Tree Hotel (2 units). Contact 9434285198 / 9434284029'),
+  ('2026-11-27'::date, 'tolet', '1 BHK', '2nd Floor (3 units available)', array['+919933226955','+919679575126']::text[], null, false, false, 'TO LET: 1 BHK — 2nd Floor (3 units available). Contact 9933226955 / 9679575126'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'G/F, Fully Tiled, near Maha Kali Garage/DBRAIT/SBI, Old Pahar Gaon, Dollygunj', array['+919434261748','+919933235306']::text[], null, false, false, 'TO LET: 2 BHK — G/F, Fully Tiled, near Maha Kali Garage/DBRAIT/SBI, Old Pahar Gaon, Dollygunj. Contact 9434261748 / 9933235306'),
+  ('2026-11-27'::date, 'commercial', 'Commercial', 'Aberdeen Bazar, Opp. SBI Evening Branch (Office/Godown)', array['+919679516066','+919531916066']::text[], null, true, false, 'TO LET: Commercial — Aberdeen Bazar, Opp. SBI Evening Branch (Office/Godown). Contact 9679516066 / 9531916066'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Bhatubasti, near Hotel Galaxy', array['+919933291064']::text[], null, false, false, 'TO LET: 2 BHK — Bhatubasti, near Hotel Galaxy. Contact 9933291064'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Junglighat', array['+919474282355']::text[], null, false, false, 'TO LET: 2 BHK — Junglighat. Contact 9474282355'),
+  ('2026-11-27'::date, 'tolet', '1 BHK', '2nd Floor, Citizen Colony, near Vivekananda School, Lambaline', array['+919434293747']::text[], null, false, false, 'TO LET: 1 BHK — 2nd Floor, Citizen Colony, near Vivekananda School, Lambaline. Contact 9434293747'),
+  ('2026-11-27'::date, 'tolet', 'Single Room', 'Calicut area', array['+919883103866','+919474270766']::text[], '₹4,500/mo', false, false, 'TO LET: Single Room — Calicut area — ₹4,500/mo. Contact 9883103866 / 9474270766'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Anarkali village, Opp. Andaman Fishery', array['+919474210943','+917063945973','+919679555093']::text[], null, false, false, 'TO LET: 2 BHK — Anarkali village, Opp. Andaman Fishery. Contact 9474210943 / 7063945973 / 9679555093'),
+  ('2026-11-27'::date, 'tolet', '2 BHK', 'Opposite KV1 (House)', array['+919434284758','+919434284186']::text[], null, false, false, 'TO LET: 2 BHK — Opposite KV1 (House). Contact 9434284758 / 9434284186'),
+  ('2026-11-24'::date, 'tolet', '2 BHK', 'Near Birdline, Brahmananda Ashram (House)', array['+917063903998','+919434272361']::text[], null, false, false, 'TO LET: 2 BHK — Near Birdline, Brahmananda Ashram (House). Contact 7063903998 / 9434272361'),
+  ('2026-11-24'::date, 'tolet', '3 BHK', 'School Line (Flat)', array['+919474294535','+919531802202']::text[], null, false, false, 'TO LET: 3 BHK — School Line (Flat). Contact 9474294535 / 9531802202'),
+  ('2026-11-24'::date, 'tolet', '1 BHK', 'Haddo Main Road Side', array['+919531950732']::text[], null, false, false, 'TO LET: 1 BHK — Haddo Main Road Side. Contact 9531950732'),
+  ('2026-11-24'::date, 'tolet', '2 BHK', 'Opp. GSSS Garacharma (+ Shops)', array['+919932081220','+919933241220']::text[], null, false, false, 'TO LET: 2 BHK — Opp. GSSS Garacharma (+ Shops). Contact 9932081220 / 9933241220'),
+  ('2026-11-24'::date, 'tolet', '2 BHK', 'ATR Road, Garacharma, Islands Sports House front; 1 BHK Round Basti, Aberdeen Village', array['+919434281323','+919933227335']::text[], null, false, false, 'TO LET: 2 BHK — ATR Road, Garacharma, Islands Sports House front; 1 BHK Round Basti, Aberdeen Village. Contact 9434281323 / 9933227335'),
+  ('2026-11-24'::date, 'tolet', '2 BHK', '2nd Floor, Junglighat, Ayush Hospital', array['+919434262446','+919933231275']::text[], null, false, false, 'TO LET: 2 BHK — 2nd Floor, Junglighat, Ayush Hospital. Contact 9434262446 / 9933231275'),
+  ('2026-11-24'::date, 'tolet', '3 BHK', 'G-Floor, Mahadeb Colony, Near PHC, Garacharma, Behind Sultan Bakery (furnished)', array['+917063995172','+919434290048']::text[], null, false, true, 'TO LET: 3 BHK — G-Floor, Mahadeb Colony, Near PHC, Garacharma, Behind Sultan Bakery (furnished). Contact 7063995172 / 9434290048'),
+  ('2026-11-24'::date, 'tolet', 'Single Room', 'ABC Colony Shadipur', array['+919679530894','+919434276819']::text[], '₹8,000/mo', false, false, 'TO LET: Single Room — ABC Colony Shadipur — ₹8,000/mo. Contact 9679530894 / 9434276819'),
+  ('2026-11-24'::date, 'tolet', '1 BHK', 'Junglighat (RCC)', array['+919434263601']::text[], null, false, false, 'TO LET: 1 BHK — Junglighat (RCC). Contact 9434263601'),
+  ('2026-11-24'::date, 'tolet', 'Other', 'Sippighat, Near Kangaroo Hotel (House)', array['+919382600500','+919434262491']::text[], null, false, false, 'TO LET: Other — Sippighat, Near Kangaroo Hotel (House). Contact 9382600500 / 9434262491'),
+  ('2026-11-24'::date, 'tolet', '3 BHK', 'Gokuldham Colony, Bird Line (Semi-Furnished House)', array['+919933224733']::text[], '₹15,000/mo', false, true, 'TO LET: 3 BHK — Gokuldham Colony, Bird Line (Semi-Furnished House) — ₹15,000/mo. Contact 9933224733'),
+  ('2026-11-24'::date, 'commercial', 'Commercial', 'Ananda Marga Road, Near CSC, Junglighat (Office/Tuition Space)', array['+917063945608','+919434260807']::text[], null, true, false, 'TO LET: Commercial — Ananda Marga Road, Near CSC, Junglighat (Office/Tuition Space). Contact 7063945608 / 9434260807')
+) as v(edition_date, ad_type, configuration, location_text, phones, rent_text, is_commercial, is_furnished, raw_text)
+join public.newspaper_publications p on p.newspaper = 'Daily Telegrams' and p.edition_date = v.edition_date
+on conflict do nothing;
