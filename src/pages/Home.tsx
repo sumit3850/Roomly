@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Map, MapPin, Newspaper, Search, ShieldCheck, Store } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { InstallAppButton } from '@/components/layout/InstallApp'
+import { ToLetButton } from '@/components/layout/ToLetButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSaved } from '@/hooks/useSaved'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -59,7 +60,8 @@ export default function Home() {
           <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium"><MapPin className="h-3.5 w-3.5" /> Andaman &amp; Nicobar Islands</p>
           <h1 className="max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">Find your next home in the islands</h1>
           <p className="mt-3 max-w-xl text-white/85">Flats, rooms, houses and commercial spaces from verified owners across Port Blair, Havelock, Neil and beyond.</p>
-          <form onSubmit={submit} className="mt-6 grid max-w-3xl gap-2 rounded-xl bg-background p-2 text-foreground shadow-lg sm:grid-cols-[1fr_150px_150px_auto]">
+          <ToLetButton className="mt-5 max-w-3xl" />
+          <form onSubmit={submit} className="mt-4 grid max-w-3xl gap-2 rounded-xl bg-background p-2 text-foreground shadow-lg sm:grid-cols-[1fr_150px_150px_auto]">
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Area, landmark or island (e.g. Dollygunj)" aria-label="Location" className="border-0 shadow-none focus-visible:ring-1" />
             <NativeSelect value={config} onChange={(e) => setConfig(e.target.value)} aria-label="Configuration" className="border-0 shadow-none">
               <option value="">Any type</option>

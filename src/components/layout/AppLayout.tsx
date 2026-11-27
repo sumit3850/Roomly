@@ -12,7 +12,7 @@ import { supabaseConfigured } from '@/lib/supabase'
 const navLinks = [
   { to: '/search', label: 'Search', icon: Search },
   { to: '/map', label: 'Map', icon: Map },
-  { to: '/newspaper', label: 'TO LET Archive', icon: Newspaper },
+  { to: '/newspaper', label: 'TO LET Tracker', icon: Newspaper },
   { to: '/help', label: 'Help', icon: HelpCircle },
 ]
 
@@ -65,9 +65,9 @@ function MobileNav() {
   const { user, isOwner } = useAuth()
   const items = [
     { to: '/', label: 'Home', icon: Home, end: true },
+    { to: '/newspaper', label: 'TO LET', icon: Newspaper },
     { to: '/search', label: 'Search', icon: Search },
-    { to: '/map', label: 'Map', icon: Map },
-    user ? { to: '/saved', label: 'Saved', icon: Heart } : { to: '/newspaper', label: 'Archive', icon: Newspaper },
+    user ? { to: '/saved', label: 'Saved', icon: Heart } : { to: '/map', label: 'Map', icon: Map },
     user
       ? { to: isOwner ? '/dashboard/owner' : '/dashboard/tenant', label: 'Dashboard', icon: LayoutDashboard }
       : { to: '/login', label: 'Sign in', icon: UserIcon },

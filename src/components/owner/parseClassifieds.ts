@@ -1,5 +1,9 @@
 export type AdType = 'tolet' | 'sale' | 'wanted' | 'commercial' | 'other'
-export type ExtractOpt = 'tolet' | 'sale' | 'wanted' | 'commercial' | 'furnished' | 'all'
+export type ExtractOpt = 'rental' | 'tolet' | 'sale' | 'wanted' | 'commercial' | 'furnished' | 'all'
+
+/** Home-rental configurations kept by the 'rental' mode and shown in the TO LET tracker. */
+export const RESIDENTIAL_CONFIGS = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK', 'Single Room'] as const
+export const isResidentialConfig = (c?: string | null) => !!c && (RESIDENTIAL_CONFIGS as readonly string[]).includes(c)
 
 export interface ParsedAd {
   ad_type: AdType
@@ -15,10 +19,14 @@ export interface ParsedAd {
 
 const phoneRe = /(?<!\d)[6-9]\d{4}[\s-]?\d{5}(?!\d)/g
 const digitsOnly = (p: string) => p.replace(/\D/g, '')
-const adStartRe = /^(to\s*-?\s*let|for\s+(sale|rent)|wanted|required|available)\b/i
+const adStartRe = /^(to\s*-?\s*let|for\s+(sale|rent)|wanted|required)\b/i
+// Upper-case classified headings that always start a new advert (e.g. 'JOB VACANCY', 'SALE', 'WANTED')
+const headingRe = /^(TO\s*-?\s*LET|FOR\s+RENT|FOR\s+SALE|SALE|WANTED|REQUIRED|JOB|JOBS|VACANCY|URGENT|ADMISSION|TUITION|NOTICE|LOST|FOUND|MATRIMONIAL|SITUATION)\b/
+const jobRe = /\b(job|vacancy|vacancies|salary|staff|candidates?|resume|cv|walk-?in|pharmacist|driver|teacher|hiring|recruit|apply)\b/i
+const roomRe = /\b(single|one|1)\s*(bed\s*)?room\b|\bbed\s*room\b|\broom\b/i
 const rentRe = /(?:Rs\.?|₹|INR)\s*[\d,]+(?:\s*\/\s*-?)?(?:\s*\/?\s*(?:month|mo|pm|p\.m\.))?/gi
 const bhkRe = /(\d)\s*\+?\s*BHK/i
-const singleRe = /single\s*(bed|room|bedroom)/i
+const singleRe = /single\s*(bed|room|bedroom)|\b(1|one)\s*(bed\s*)?room\b|\bbed\s*room\b/i
 const commRe = /(?<!post\s)\boffice\b|godown|\bshops?\b|commercial|showroom|warehouse/i
 const residentialRe = /\bbhk\b|\bflat\b|\bhouse\b|\broom\b|apartment|\bquarters?\b/i
 const bareRentRe = /\brent\s*[:.-]?\s*([\d]{1,3}(?:,\d{3})+|\d{4,6})\b/i
@@ -38,7 +46,7 @@ export function parseClassifieds(text: string, opts: ExtractOpt[], pageMarker = 
     const pm = l.match(pageMarker)
     if (pm) { flush(); page = Number(pm[1]); continue }
     if (!l) { flush(); continue }
-    if (adStartRe.test(l) && cur.length) flush()
+    if ((adStartRe.test(l) || headingRe.test(l)) && cur.length) flush()
     cur.push(l)
     // Phone numbers usually end an advert: close the block after a line containing one
     if (phoneRe.test(l) && /\d{5}\s*[.)]?\s*$/.test(l)) flush()
@@ -54,7 +62,13 @@ export function parseClassifieds(text: string, opts: ExtractOpt[], pageMarker = 
     const isWant = wantRe.test(blk)
     const isComm = commRe.test(blk) && !(residentialRe.test(blk) && !/\b(shop|godown|showroom|warehouse)\b/i.test(blk))
     const isFurn = furnRe.test(blk)
-    if (!opts.includes('all')) {
+    if (opts.includes('rental')) {
+      // Only homes for rent: BHK flats/houses and rooms. No commercial, sale, wanted or job ads.
+      const residential = bhkRe.test(blk) || roomRe.test(blk) || /\b(flat|house|apartment|quarters?)\b/i.test(blk)
+      const rentalWords = toletRe.test(blk) || /\bavailable\b|\brent\b/i.test(blk)
+      const onlyCommercial = commRe.test(blk) && !bhkRe.test(blk) && !roomRe.test(blk)
+      if (!residential || !rentalWords || onlyCommercial || jobRe.test(blk) || (isWant && !toletRe.test(blk)) || (isSale && !toletRe.test(blk))) continue
+    } else if (!opts.includes('all')) {
       let m = false
       if (opts.includes('tolet') && isToLet) m = true
       if (opts.includes('sale') && isSale) m = true
@@ -68,8 +82,9 @@ export function parseClassifieds(text: string, opts: ExtractOpt[], pageMarker = 
     let cfg = 'Other'
     const bm = blk.match(bhkRe)
     if (bm) cfg = Number(bm[1]) >= 5 ? '5+ BHK' : `${bm[1]} BHK`
-    else if (singleRe.test(blk)) cfg = 'Single Room'
+    else if (singleRe.test(blk) || (opts.includes('rental') && roomRe.test(blk))) cfg = 'Single Room'
     else if (isComm) cfg = 'Commercial'
+    if (opts.includes('rental') && !isResidentialConfig(cfg)) continue
     const rentM = blk.match(rentRe)
     const bareM = rentM ? null : blk.match(bareRentRe)
     const rent = rentM ? rentM[0].replace(/\s+/g, '').replace(/^(Rs\.?|INR)/i, '₹').slice(0, 60) : bareM ? `₹${bareM[1]}` : null
