@@ -19,7 +19,7 @@ export const supabase = createClient(url ?? 'http://localhost', key ?? 'missing'
   },
 })
 
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(/\/$/, '')
+export const SITE_URL = (import.meta.env.VITE_SITE_URL || window.location.origin + import.meta.env.BASE_URL).replace(/\/$/, '')
 
 export const BUCKETS = {
   propertyImages: 'property-images',

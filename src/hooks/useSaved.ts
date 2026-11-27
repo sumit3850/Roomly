@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,7 @@ import { errorMessage } from '@/lib/utils'
 export function useSaved() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [ids, setIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function useSaved() {
     } else {
       toast.success(wasSaved ? 'Removed from saved' : 'Saved to favourites')
     }
-  }, [user, ids, navigate])
+  }, [user, ids, navigate, location.pathname])
 
   return { savedIds: ids, toggleSaved: toggle }
 }

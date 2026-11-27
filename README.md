@@ -197,6 +197,11 @@ Before upload, images are validated (type and size) and downscaled in the browse
 
 ## 6. Deployment
 
+**GitHub Pages (already set up):** `.github/workflows/deploy-pages.yml` builds the app and publishes it to `https://sumit3850.github.io/Roomly/` every time `main` changes.
+
+One-time setup: in GitHub, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. Also add `https://sumit3850.github.io/Roomly/**` to the Supabase Redirect URLs.
+
+
 The app is a static SPA. It can be hosted on Vercel, Netlify, Cloudflare Pages or any static host.
 
 ```bash
