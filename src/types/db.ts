@@ -110,13 +110,14 @@ export interface NotificationRow {
 export interface Publication {
   id: string; name: string; newspaper: string; edition_date: string; pdf_path: string | null
   page_count: number | null; status: 'uploaded' | 'processing' | 'processed' | 'failed'; created_at: string
+  source: 'auto' | 'upload'; source_url: string | null; ad_count: number; fetched_at: string | null; uploaded_by: string | null
 }
 
 export interface Advertisement {
   id: string; publication_id: string; ad_type: 'tolet' | 'sale' | 'wanted' | 'commercial' | 'other'
   configuration: string | null; location_text: string | null; phones: string[]; rent_text: string | null
   raw_text: string | null; is_commercial: boolean; is_furnished: boolean; page_number: number | null
-  linked_property_id: string | null; created_at: string
+  linked_property_id: string | null; created_by: string | null; created_at: string
 }
 
 export interface UserReport {

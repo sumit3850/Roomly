@@ -19,15 +19,16 @@ const OPTS: { value: ExtractOpt; label: string }[] = [
   { value: 'all', label: 'All classifieds' },
 ]
 
-/** Admin-only: upload an edition PDF/TXT, extract classifieds in the browser, review and save. */
+/** Any signed-in user: upload an edition PDF/TXT, extract classifieds in the browser, review and save. */
 export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [newspaper, setNewspaper] = useState('Daily Telegrams')
   const [editionDate, setEditionDate] = useState(new Date().toISOString().slice(0, 10))
   const [opts, setOpts] = useState<Set<ExtractOpt>>(new Set(['tolet', 'sale', 'wanted']))
   const [status, setStatus] = useState<string | null>(null)
   const [publicationId, setPublicationId] = useState<string | null>(null)
+  const [ownsPublication, setOwnsPublication] = useState(false)
   const [ads, setAds] = useState<ParsedAd[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
@@ -40,26 +41,40 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
     if (!isPdf && !isTxt) return toast.error('Only PDF or TXT files are supported')
     if (file.size > 50 * 1024 * 1024) return toast.error('File is larger than 50 MB')
     let pubId: string | null = null
+    let ownsPub = false
     try {
       setStatus('Uploading file…')
       const safe = file.name.replace(/[^\w.-]+/g, '_').slice(-120)
-      const path = `${editionDate}/${Date.now()}-${safe}`
+      const path = `uploads/${user.id}/${editionDate}/${Date.now()}-${safe}`
       const { error: upErr } = await supabase.storage.from(BUCKETS.newspaperPdfs).upload(path, file, {
         contentType: isPdf ? 'application/pdf' : 'text/plain', upsert: false,
       })
       if (upErr) throw upErr
 
       setStatus('Creating edition record…')
-      const { data: pub, error: pubErr } = await supabase.from('newspaper_publications').upsert({
-        newspaper: newspaper.trim() || 'Daily Telegrams',
-        edition_date: editionDate,
-        name: `${newspaper.trim() || 'Daily Telegrams'} — ${new Date(editionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-        pdf_path: path,
-        status: 'processing',
-        uploaded_by: user.id,
-      }, { onConflict: 'newspaper,edition_date' }).select('id').single()
-      if (pubErr) throw pubErr
-      pubId = pub.id as string
+      const paper = newspaper.trim() || 'Daily Telegrams'
+      // Reuse the edition if it already exists (e.g. downloaded automatically); otherwise create it.
+      const { data: existing, error: exErr } = await supabase.from('newspaper_publications')
+        .select('id, uploaded_by').eq('newspaper', paper).eq('edition_date', editionDate).maybeSingle()
+      if (exErr) throw exErr
+      if (existing) {
+        pubId = existing.id as string
+        ownsPub = existing.uploaded_by === user.id || isAdmin
+      } else {
+        const { data: pub, error: pubErr } = await supabase.from('newspaper_publications').insert({
+          newspaper: paper,
+          edition_date: editionDate,
+          name: `${paper} — ${new Date(editionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+          pdf_path: path,
+          status: 'processing',
+          source: 'upload',
+          uploaded_by: user.id,
+        }).select('id').single()
+        if (pubErr) throw pubErr
+        pubId = pub.id as string
+        ownsPub = true
+      }
+      setOwnsPublication(ownsPub)
       setPublicationId(pubId)
 
       let text: string
@@ -73,7 +88,7 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
       }
       setStatus('Finding classifieds…')
       const parsed = parseClassifieds(text, [...opts])
-      await supabase.from('newspaper_publications').update({ page_count: pages, status: parsed.length ? 'processing' : 'failed' }).eq('id', pub.id)
+      if (ownsPub) await supabase.from('newspaper_publications').update({ page_count: pages, status: parsed.length ? 'processing' : 'failed' }).eq('id', pubId)
       setAds(parsed)
       setSelected(new Set(parsed.map((_, i) => i)))
       if (!parsed.length) {
@@ -83,7 +98,7 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
       }
     } catch (e) {
       toast.error(errorMessage(e))
-      if (pubId) await supabase.from('newspaper_publications').update({ status: 'failed' }).eq('id', pubId)
+      if (pubId && ownsPub) await supabase.from('newspaper_publications').update({ status: 'failed' }).eq('id', pubId)
     } finally {
       setStatus(null)
     }
@@ -97,12 +112,12 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
     let saved = 0, dup = 0
     const failed: string[] = []
     for (const ad of rows) {
-      const { error } = await supabase.from('newspaper_advertisements').insert({ ...ad, publication_id: publicationId })
+      const { error } = await supabase.from('newspaper_advertisements').insert({ ...ad, publication_id: publicationId, created_by: user?.id })
       if (!error) saved++
       else if (error.code === '23505') dup++
       else failed.push(errorMessage(error))
     }
-    await supabase.from('newspaper_publications').update({ status: 'processed' }).eq('id', publicationId)
+    if (ownsPublication) await supabase.from('newspaper_publications').update({ status: 'processed' }).eq('id', publicationId)
     setStatus(null)
     toast.success(`${saved} advert(s) saved${dup ? `, ${dup} duplicate(s) skipped` : ''}`)
     if (failed.length) toast.error(`${failed.length} failed`, { description: failed[0] })
@@ -113,8 +128,8 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
   return (
     <Card className="border-primary/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5" /> Admin: add newspaper edition</CardTitle>
-        <CardDescription>The PDF is stored in the newspaper-pdfs bucket; text is extracted in your browser and you review adverts before saving.</CardDescription>
+        <CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5" /> Upload a newspaper</CardTitle>
+        <CardDescription>Have a paper we don't? Upload the PDF (or a TXT copy). Text is read in your browser, you review the adverts found, and they appear in the archive for everyone.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">

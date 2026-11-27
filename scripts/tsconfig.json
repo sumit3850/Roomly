@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": { "types": ["node"], "lib": ["ES2022", "DOM"], "noEmit": true },
+  "include": ["./*.ts", "../src/components/owner/parseClassifieds.ts"]
+}

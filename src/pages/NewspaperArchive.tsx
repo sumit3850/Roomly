@@ -107,39 +107,87 @@ export default function NewspaperArchive() {
   }
 
   const myPhone = profile?.phone ?? null
+  const latest = pubs.slice(0, 5)
+  const lastFetched = pubs.reduce<string | null>((m, p) => (p.fetched_at && (!m || p.fetched_at > m) ? p.fetched_at : m), null)
+  const manageable = isAdmin ? pubs : pubs.filter((p) => p.source === 'upload' && p.uploaded_by === user?.id)
 
   return (
     <div className="container py-6">
       <PageHeader
         title="Newspaper TO LET archive"
-        description="Classified rental adverts from island newspapers like Daily Telegrams, searchable in one place."
+        description="TO LET classifieds from the Daily Telegrams — the latest editions are downloaded automatically every day, plus papers uploaded by users."
         actions={<Button variant="outline" size="sm" onClick={exportCsv} disabled={!ads.length}><Download /> Export CSV</Button>}
       />
 
-      {isAdmin && (
-        <div className="mb-6 space-y-4">
-          <ArchiveUploader onSaved={() => { void loadPubs(); void loadAds() }} />
-          {pubs.length > 0 && (
-            <div className="rounded-xl border bg-card p-4">
-              <h3 className="mb-3 text-sm font-semibold">Editions ({pubs.length})</h3>
-              <div className="space-y-2">
-                {pubs.map((p) => (
-                  <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0 last:pb-0">
-                    <div>
-                      <span className="font-medium">{p.name}</span>
-                      <Badge variant={p.status === 'processed' ? 'success' : p.status === 'failed' ? 'destructive' : 'warning'} className="ml-2 capitalize">{p.status}</Badge>
-                      {p.page_count ? <span className="ml-2 text-xs text-muted-foreground">{p.page_count} pages</span> : null}
-                    </div>
-                    <ConfirmDialog title={`Delete ${p.name}?`} description="All adverts from this edition and its PDF will be permanently removed." destructive confirmLabel="Delete edition"
-                      onConfirm={() => deleteEdition(p)}
-                      trigger={(open) => <Button size="sm" variant="ghost" className="text-destructive" onClick={open}><Trash2 /> Delete</Button>} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Latest 5 editions, downloaded automatically every day */}
+      <section className="mb-6" aria-labelledby="latest-editions">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="latest-editions" className="text-lg font-semibold">Latest editions</h2>
+          <p className="text-xs text-muted-foreground">
+            {lastFetched ? <>Auto-downloaded daily from dt.andamannicobar.gov.in · last checked {formatDate(lastFetched, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</> : 'New editions are downloaded automatically every day'}
+          </p>
         </div>
-      )}
+        {latest.length === 0 ? (
+          <p className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground">No editions yet. They appear here after the first daily download, or when someone uploads a paper.</p>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 lg:grid-cols-5">
+            {latest.map((p) => {
+              const active = edition === p.id
+              const d = new Date(p.edition_date + 'T00:00:00')
+              return (
+                <button key={p.id} type="button" onClick={() => setEdition(active ? '' : p.id)} aria-pressed={active}
+                  className={`min-w-[9.5rem] rounded-xl border p-3 text-left transition-colors ${active ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:bg-accent'}`}>
+                  <div className="text-xs font-medium opacity-80">{d.toLocaleDateString('en-IN', { weekday: 'long' })}</div>
+                  <div className="text-xl font-bold leading-tight">{d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+                  <div className="text-xs opacity-80">{d.getFullYear()} · {p.newspaper}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-semibold">{p.ad_count} advert{p.ad_count === 1 ? '' : 's'}</span>
+                    <Badge variant={active ? 'secondary' : p.source === 'auto' ? 'muted' : 'outline'} className="px-1.5 py-0 text-[10px]">{p.source === 'auto' ? 'Auto' : 'Uploaded'}</Badge>
+                    {p.status !== 'processed' && <Badge variant="warning" className="px-1.5 py-0 text-[10px] capitalize">{p.status}</Badge>}
+                  </div>
+                  {p.pdf_path && (
+                    <a href={publicUrl(BUCKETS.newspaperPdfs, p.pdf_path) ?? '#'} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                      className={`mt-2 inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline ${active ? '' : 'text-primary'}`}>
+                      <FileText className="h-3.5 w-3.5" /> Read PDF
+                    </a>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <div className="mb-6 space-y-4">
+        {user ? (
+          <ArchiveUploader onSaved={() => { void loadPubs(); void loadAds() }} />
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 text-sm">
+            <span className="text-muted-foreground">Have a newspaper PDF that isn't here? Sign in to upload it — its TO LET adverts will be added to the archive.</span>
+            <Button asChild size="sm" variant="outline"><Link to="/login?next=/newspaper">Sign in to upload</Link></Button>
+          </div>
+        )}
+        {manageable.length > 0 && (
+          <div className="rounded-xl border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold">{isAdmin ? `All editions (${manageable.length})` : `Papers you uploaded (${manageable.length})`}</h3>
+            <div className="space-y-2">
+              {manageable.map((p) => (
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0 last:pb-0">
+                  <div>
+                    <span className="font-medium">{p.name}</span>
+                    <Badge variant={p.status === 'processed' ? 'success' : p.status === 'failed' ? 'destructive' : 'warning'} className="ml-2 capitalize">{p.status}</Badge>
+                    <Badge variant="muted" className="ml-1">{p.source === 'auto' ? 'Auto' : 'Uploaded'}</Badge>
+                    <span className="ml-2 text-xs text-muted-foreground">{p.ad_count} adverts{p.page_count ? ` · ${p.page_count} pages` : ''}</span>
+                  </div>
+                  <ConfirmDialog title={`Delete ${p.name}?`} description="All adverts from this edition and its PDF will be permanently removed." destructive confirmLabel="Delete edition"
+                    onConfirm={() => deleteEdition(p)}
+                    trigger={(open) => <Button size="sm" variant="ghost" className="text-destructive" onClick={open}><Trash2 /> Delete</Button>} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative sm:col-span-2">

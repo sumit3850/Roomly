@@ -135,4 +135,26 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
 insert into storage.objects (bucket_id, name) values ('property-images', '00000000-0000-0000-0000-00000000000a/10000000-0000-0000-0000-000000000001/x.jpg');
 select pg_temp.expect(true, 'owner can upload images for own property');
 
+-- newspaper archive: any signed-in user can upload; only own uploads are editable
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+insert into public.newspaper_publications (id, name, edition_date, source, uploaded_by)
+values ('20000000-0000-0000-0000-000000000001', 'Daily Telegrams — test', '2026-11-20', 'auto', '00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select source = 'upload' and uploaded_by = auth.uid() from public.newspaper_publications where id = '20000000-0000-0000-0000-000000000001'), 'user upload is attributed to uploader and cannot pose as auto');
+insert into public.newspaper_advertisements (publication_id, configuration, phones) values ('20000000-0000-0000-0000-000000000001', '1 BHK', array['+919800000002']);
+select pg_temp.expect((select created_by = auth.uid() from public.newspaper_advertisements where publication_id = '20000000-0000-0000-0000-000000000001'), 'user can add adverts from an uploaded paper');
+insert into storage.objects (bucket_id, name) values ('newspaper-pdfs', 'uploads/00000000-0000-0000-0000-00000000000c/paper.pdf');
+select pg_temp.expect(true, 'user can upload paper PDF into own uploads folder');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+delete from public.newspaper_advertisements where publication_id = '20000000-0000-0000-0000-000000000001';
+delete from public.newspaper_publications where id = '20000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.expect((select count(*) from public.newspaper_advertisements where publication_id = '20000000-0000-0000-0000-000000000001') = 1, 'other users cannot delete someone else''s uploaded paper or adverts');
+select pg_temp.expect((select ad_count = 1 from public.newspaper_publications where id = '20000000-0000-0000-0000-000000000001'), 'edition advert count kept in sync');
+select pg_temp.act_as(null);
+do $$ begin
+  insert into public.newspaper_publications (name, edition_date) values ('anon', '2026-11-21');
+  raise exception 'FAIL: anon uploaded';
+exception when insufficient_privilege then raise notice 'PASS: signed-out visitors cannot upload papers'; end $$;
+reset role;
+
 rollback;

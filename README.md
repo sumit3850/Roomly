@@ -38,8 +38,8 @@ src/
   pages/                     the 20 application pages (+ auth callback, 404)
 supabase/
   migrations/                schema, RLS, storage buckets/policies, reference data
-  seed.sql                   newspaper archive: 44 real adverts from the 24/26/27 Nov 2026 editions
-  tests/rls_test.sql         30 authorization tests (run inside a rolled-back transaction)
+  tests/rls_test.sql         38 authorization tests (run inside a rolled-back transaction)
+scripts/fetch-daily-papers.ts  daily e-paper downloader (run by .github/workflows/daily-papers.yml)
   config.toml                Auth/SMS settings reference (mirrors what to set in the dashboard)
 ```
 
@@ -64,7 +64,7 @@ supabase/
 | 15 | User profile | `/profile` | signed in |
 | 16 | Saved properties | `/saved` | signed in |
 | 17 | My enquiries | `/enquiries` | signed in |
-| 18 | Newspaper TO LET archive | `/newspaper` | public (admin tools for admins) |
+| 18 | Newspaper TO LET archive | `/newspaper` | public; signed-in users can upload papers |
 | 19 | Admin dashboard | `/admin` | admin |
 | 20 | Contact & help | `/help` | public |
 
@@ -78,7 +78,6 @@ The migrations are plain SQL and idempotent. Apply them in filename order using 
 npx supabase login
 npx supabase link --project-ref kbeondyuxwqiuxyjvzfr     # asks for the database password
 npx supabase db push                                     # applies supabase/migrations/*
-psql "$(npx supabase db url --linked 2>/dev/null || echo $DATABASE_URL)" -f supabase/seed.sql   # optional: newspaper archive
 ```
 
 **B. Dashboard SQL editor.** Open SQL Editor and paste and run each file in order:
@@ -87,12 +86,12 @@ psql "$(npx supabase db url --linked 2>/dev/null || echo $DATABASE_URL)" -f supa
 2. `supabase/migrations/20261127000002_rls.sql`: RLS enabled on every table, plus policies and grants
 3. `supabase/migrations/20261127000003_storage.sql`: 5 buckets with size/MIME limits and storage policies
 4. `supabase/migrations/20261127000004_reference_data.sql`: property categories and amenities
-5. `supabase/seed.sql` (optional): the real newspaper archive data from your original tracker
+5. `supabase/migrations/20261128000005_newspaper_auto_and_user_uploads.sql`: daily auto-download columns and uploads by any signed-in user
 
 **C. psql** with the connection string from Project Settings → Database:
 
 ```bash
-for f in supabase/migrations/*.sql supabase/seed.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
 ```
 
 ### Tables
@@ -167,12 +166,44 @@ Created by migration 0003:
 | `property-images` | yes | 5 MB, jpg/png/webp | owner, only under `{uid}/{their property id}/` |
 | `profile-images` | yes | 2 MB, jpg/png/webp | user, only under `{uid}/` |
 | `property-documents` | **no** | 10 MB, pdf/jpg/png | user, only under `{uid}/`; readable only by them and admins |
-| `newspaper-pdfs` | yes | 50 MB, pdf/txt | admins |
+| `newspaper-pdfs` | yes | 50 MB, pdf/txt | daily downloader (`auto/`), signed-in users (`uploads/{uid}/`), admins |
 | `newspaper-extracted-pages` | yes | 10 MB | admins |
 
 Before upload, images are validated (type and size) and downscaled in the browser to at most 1920 px. That keeps uploads fast on island mobile networks.
 
-## 6. Deployment
+## 6. Daily newspaper download (GitHub Actions)
+
+`.github/workflows/daily-papers.yml` runs `scripts/fetch-daily-papers.ts` every day at 11:47 and 18:47 IST.
+
+What each run does:
+1. Scans `dt.andamannicobar.gov.in` for e-paper PDFs. These are named by upload date, e.g. `epaper/10082026102721541.pdf`.
+2. Picks the latest 5 edition dates and skips any PDF already in the database.
+3. Downloads each new PDF and stores it in `newspaper-pdfs/auto/<date>/`.
+4. Reads the edition date from the masthead.
+5. Extracts the TO LET / sale / wanted adverts and saves them.
+
+The archive page shows the latest 5 editions with their dates at the top.
+
+**One-time setup** in GitHub → repo **Settings → Secrets and variables → Actions**:
+
+| Name | Type | Value |
+|---|---|---|
+| `SUPABASE_URL` | Secret | `https://kbeondyuxwqiuxyjvzfr.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Supabase → Project Settings → API → `service_role` key (server-side only, never in the frontend) |
+| `DT_SOURCE_URLS` | Variable (optional) | Comma-separated page(s) that list the e-paper PDFs, if the site's home page stops linking them |
+
+Then open **Actions → Daily newspaper download → Run workflow**. Tick *Dry run* first to see what it finds without writing anything. If a run finds no PDF links, it fails and GitHub e-mails you, which usually means the site layout changed. Set `DT_SOURCE_URLS` to the page that lists the editions.
+
+Run it locally with:
+
+```bash
+DRY_RUN=1 npx tsx scripts/fetch-daily-papers.ts
+SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/fetch-daily-papers.ts
+```
+
+Scanned (image-only) PDFs have no text layer, so no adverts can be extracted from them. The PDF is still stored and linked.
+
+## 7. Deployment
 
 The app is a static SPA. It can be hosted on Vercel, Netlify, Cloudflare Pages or any static host.
 
@@ -184,9 +215,9 @@ npm run build      # outputs dist/
 - **Netlify / Cloudflare Pages:** build command `npm run build`, publish directory `dist`. `public/_redirects` handles SPA routing.
 - After deploying, set the Site URL and Redirect URLs in Supabase (section 4) to the production domain, and set `VITE_SITE_URL` to the same value.
 
-## 7. Testing
+## 8. Testing
 
-### Automated: database authorization (30 tests)
+### Automated: database authorization (38 tests)
 
 Run against a **staging** database. Everything happens inside a transaction that is rolled back.
 
@@ -256,9 +287,10 @@ npm run typecheck && npm run build
 
 **Admin**
 - [ ] Verify/feature/deactivate listings; manage roles; verify/suspend users; resolve reports and support messages
-- [ ] Upload a newspaper PDF → text extracted → preview → adverts saved → visible on `/newspaper`; CSV export works
+- [ ] Upload a newspaper PDF as a normal signed-in user → text extracted → preview → adverts saved → visible on `/newspaper`; another user can't delete it; CSV export works
+- [ ] Run the *Daily newspaper download* workflow manually → latest 5 editions appear at the top of `/newspaper` with their dates
 
-## 8. Security notes
+## 9. Security notes
 
 - RLS is enabled on **all 16 tables**. The frontend only holds the publishable key.
 - Privileged operations run through RLS-checked queries or `SECURITY DEFINER` functions with explicit `is_admin()` / ownership checks and a fixed `search_path`. Examples: verifying listings, role changes, stats, marking rented.
