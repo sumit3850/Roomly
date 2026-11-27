@@ -1,0 +1,56 @@
+# Supabase CLI config (used by `supabase start` locally and as the reference for
+# the hosted project's Auth settings — mirror these in Dashboard → Authentication).
+project_id = "kbeondyuxwqiuxyjvzfr"
+
+[api]
+schemas = ["public", "storage"]
+max_rows = 1000
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/auth/callback",
+  "http://localhost:5173/reset-password",
+  "https://YOUR-PRODUCTION-DOMAIN/auth/callback",
+  "https://YOUR-PRODUCTION-DOMAIN/reset-password",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+minimum_password_length = 8
+password_requirements = "letters_digits"
+
+[auth.sessions]
+# Force re-login after 30 days; inactive sessions expire after 7 days
+timebox = "720h"
+inactivity_timeout = "168h"
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
+max_frequency = "60s"
+otp_expiry = 3600
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+max_frequency = "60s"
+template = "Your Roomly verification code is {{ .Code }}. It expires in 10 minutes. Do not share it."
+
+# Choose ONE SMS provider. Secrets must come from env vars, never committed.
+[auth.sms.twilio]
+enabled = true
+account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
+[auth.rate_limit]
+email_sent = 30
+sms_sent = 30
+token_verifications = 30
+
+[storage]
+file_size_limit = "50MiB"
