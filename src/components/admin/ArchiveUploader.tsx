@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field } from '@/components/ui/misc'
 import { cn, errorMessage } from '@/lib/utils'
-import { extractPdfText, parseClassifieds, type ExtractOpt, type ParsedAd } from '@/components/owner/parseClassifieds'
+import { extractPdfText, ocrPdfPages, parseClassifieds, parsePageRange, type ExtractOpt, type ParsedAd } from '@/components/owner/parseClassifieds'
 
 const OPTS: { value: ExtractOpt; label: string }[] = [
   { value: 'tolet', label: 'TO LET / Rent' },
@@ -27,6 +27,7 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
   const [editionDate, setEditionDate] = useState(new Date().toISOString().slice(0, 10))
   const [opts, setOpts] = useState<Set<ExtractOpt>>(new Set(['tolet', 'sale', 'wanted']))
   const [status, setStatus] = useState<string | null>(null)
+  const [pageRange, setPageRange] = useState('')
   const [publicationId, setPublicationId] = useState<string | null>(null)
   const [ownsPublication, setOwnsPublication] = useState(false)
   const [ads, setAds] = useState<ParsedAd[]>([])
@@ -79,20 +80,35 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
 
       let text: string
       let pages: number | null = null
+      let wanted: Set<number> | null = null
+      let usedOcr = false
       if (isPdf) {
-        const res = await extractPdfText(file, (p, t) => setStatus(`Reading page ${p} of ${t}…`))
-        text = res.text
+        const res = await extractPdfText(file, (p, t) => setStatus(`Reading text on page ${p} of ${t}…`))
         pages = res.pages
+        text = res.text
+        if (pageRange.trim()) wanted = new Set(parsePageRange(pageRange, res.pages))
+        // Scanned pages have no text layer → read them with OCR
+        const toOcr = res.imagePages.filter((p) => !wanted || wanted.has(p))
+        if (toOcr.length) {
+          usedOcr = true
+          setStatus(`This paper is scanned — reading ${toOcr.length} page(s) with OCR. Loading reader…`)
+          const ocrText = await ocrPdfPages(file, toOcr, ({ page, index, total, pct }) =>
+            setStatus(`Reading scanned page ${page} (${index} of ${total})… ${pct}%`))
+          text = `${text}\n\n${ocrText}`
+        }
       } else {
         text = await file.text()
       }
       setStatus('Finding classifieds…')
-      const parsed = parseClassifieds(text, [...opts])
+      let parsed = parseClassifieds(text, [...opts])
+      if (wanted) parsed = parsed.filter((a) => a.page_number == null || wanted!.has(a.page_number))
       if (ownsPub) await supabase.from('newspaper_publications').update({ page_count: pages, status: parsed.length ? 'processing' : 'failed' }).eq('id', pubId)
       setAds(parsed)
       setSelected(new Set(parsed.map((_, i) => i)))
       if (!parsed.length) {
-        toast.warning(isPdf ? 'No classifieds detected. Scanned (image-only) PDFs have no text layer — try a text PDF or TXT.' : 'No classifieds detected.')
+        toast.warning(usedOcr
+          ? 'No adverts found on the pages read. Check the page numbers of the classifieds section, or tick "All classifieds" and try again.'
+          : 'No adverts found. Try ticking "All classifieds", or set the page numbers of the classifieds section.')
       } else {
         toast.success(`Found ${parsed.length} advert(s). Review and save.`)
       }
@@ -139,6 +155,9 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
             <Input id="np-file" type="file" accept=".pdf,.txt,application/pdf,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </Field>
         </div>
+        <Field label="Pages to read (optional)" htmlFor="np-pages" hint="e.g. 6-8 for the classifieds pages. Leave empty to read every page. Scanned pages take about 15–40 seconds each.">
+          <Input id="np-pages" value={pageRange} onChange={(e) => setPageRange(e.target.value)} placeholder="All pages" inputMode="numeric" className="sm:max-w-xs" />
+        </Field>
         <div className="flex flex-wrap gap-2">
           {OPTS.map((o) => {
             const on = opts.has(o.value)
