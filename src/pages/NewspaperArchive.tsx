@@ -108,14 +108,13 @@ export default function NewspaperArchive() {
 
   const myPhone = profile?.phone ?? null
   const latest = pubs.slice(0, 5)
-  const lastFetched = pubs.reduce<string | null>((m, p) => (p.fetched_at && (!m || p.fetched_at > m) ? p.fetched_at : m), null)
   const manageable = isAdmin ? pubs : pubs.filter((p) => p.source === 'upload' && p.uploaded_by === user?.id)
 
   return (
     <div className="container py-6">
       <PageHeader
         title="Newspaper TO LET archive"
-        description="TO LET classifieds from the Daily Telegrams — the latest editions are downloaded automatically every day, plus papers uploaded by users."
+        description="TO LET classifieds from newspapers uploaded by users. The latest 5 editions are shown first."
         actions={<Button variant="outline" size="sm" onClick={exportCsv} disabled={!ads.length}><Download /> Export CSV</Button>}
       />
 
@@ -123,12 +122,10 @@ export default function NewspaperArchive() {
       <section className="mb-6" aria-labelledby="latest-editions">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="latest-editions" className="text-lg font-semibold">Latest editions</h2>
-          <p className="text-xs text-muted-foreground">
-            {lastFetched ? <>Auto-downloaded daily from dt.andamannicobar.gov.in · last checked {formatDate(lastFetched, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</> : 'New editions are downloaded automatically every day'}
-          </p>
+
         </div>
         {latest.length === 0 ? (
-          <p className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground">No editions yet. They appear here after the first daily download, or when someone uploads a paper.</p>
+          <p className="rounded-xl border border-dashed bg-card p-4 text-sm text-muted-foreground">No editions yet. Upload a newspaper PDF below and its TO LET adverts will appear here.</p>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 lg:grid-cols-5">
             {latest.map((p) => {
@@ -142,7 +139,6 @@ export default function NewspaperArchive() {
                   <div className="text-xs opacity-80">{d.getFullYear()} · {p.newspaper}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                     <span className="font-semibold">{p.ad_count} advert{p.ad_count === 1 ? '' : 's'}</span>
-                    <Badge variant={active ? 'secondary' : p.source === 'auto' ? 'muted' : 'outline'} className="px-1.5 py-0 text-[10px]">{p.source === 'auto' ? 'Auto' : 'Uploaded'}</Badge>
                     {p.status !== 'processed' && <Badge variant="warning" className="px-1.5 py-0 text-[10px] capitalize">{p.status}</Badge>}
                   </div>
                   {p.pdf_path && (
@@ -176,7 +172,6 @@ export default function NewspaperArchive() {
                   <div>
                     <span className="font-medium">{p.name}</span>
                     <Badge variant={p.status === 'processed' ? 'success' : p.status === 'failed' ? 'destructive' : 'warning'} className="ml-2 capitalize">{p.status}</Badge>
-                    <Badge variant="muted" className="ml-1">{p.source === 'auto' ? 'Auto' : 'Uploaded'}</Badge>
                     <span className="ml-2 text-xs text-muted-foreground">{p.ad_count} adverts{p.page_count ? ` · ${p.page_count} pages` : ''}</span>
                   </div>
                   <ConfirmDialog title={`Delete ${p.name}?`} description="All adverts from this edition and its PDF will be permanently removed." destructive confirmLabel="Delete edition"
