@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, Map, MapPin, Newspaper, Search, ShieldCheck, Store } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { InstallAppButton } from '@/components/layout/InstallApp'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSaved } from '@/hooks/useSaved'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -82,6 +83,17 @@ export default function Home() {
               <div><span className="block text-2xl font-bold">{counts.ads}</span>archived newspaper ads</div>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="container pt-6">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" className="h-11 w-11 rounded-xl" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Get the Roomly app</p>
+            <p className="text-sm text-muted-foreground">Install it on your phone's home screen. Free, opens like an app.</p>
+          </div>
+          <InstallAppButton />
         </div>
       </section>
 

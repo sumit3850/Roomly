@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { NotificationBell } from './NotificationBell'
+import { InstallAppButton } from './InstallApp'
 import { cn, initials } from '@/lib/utils'
 import { supabaseConfigured } from '@/lib/supabase'
 
@@ -105,6 +106,7 @@ export function AppLayout() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1.5">
+            <InstallAppButton variant="outline" size="sm" label="Install" className="px-2.5" />
             {!loading && user && (
               <>
                 {isOwner && (
