@@ -32,6 +32,8 @@ jobs:
           # Publishable (anon) key: safe to be public, data is protected by Row Level Security.
           # Override with repository Variables of the same name if the project changes.
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://kbeondyuxwqiuxyjvzfr.supabase.co' }}
+          VITE_ENABLE_PHONE_AUTH: ${{ vars.VITE_ENABLE_PHONE_AUTH || 'false' }}
+          VITE_ENABLE_GOOGLE_AUTH: ${{ vars.VITE_ENABLE_GOOGLE_AUTH || 'false' }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_3WjagfKO1qnlWq-5dq4ZJA_a6lShLrM' }}
       - name: SPA fallback (deep links like /Roomly/search)
         run: cp dist/index.html dist/404.html && touch dist/.nojekyll

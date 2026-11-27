@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { BadgeCheck, Bell, Camera, KeyRound, LogOut, Mail, Phone, ShieldCheck, User as UserIcon, Briefcase } from 'lucide-react'
-import { supabase, SITE_URL } from '@/lib/supabase'
+import { supabase, SITE_URL, PHONE_AUTH_ENABLED } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { uploadAvatar } from '@/lib/storage'
 import { ACCOUNT_TYPES, POPULAR_AREAS, type AccountType } from '@/lib/constants'
@@ -137,7 +137,7 @@ const emailSchema = z.object({ email: z.string().trim().toLowerCase().email('Ent
 const phoneSchema = z.object({ phone: z.string().trim().refine((v) => toE164(v) !== null, 'Enter a valid mobile number') })
 
 function ContactTab({ profile }: { profile: ProfileRow }) {
-  const { user } = useAuth()
+  const { user, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
   const emailForm = useForm<z.infer<typeof emailSchema>>({ resolver: zodResolver(emailSchema), defaultValues: { email: '' } })
@@ -160,6 +160,15 @@ function ContactTab({ profile }: { profile: ProfileRow }) {
     if (phone === currentPhone) { toast.info('That is already your number'); return }
     const { data: taken } = await supabase.rpc('identity_exists', { _phone: phone })
     if (taken) { toast.error('This number is already linked to another account'); return }
+    if (!PHONE_AUTH_ENABLED) {
+      // No SMS provider: store the number on the profile (shown to owners you enquire with)
+      const { error } = await supabase.from('profiles').update({ phone }).eq('id', profile.id)
+      if (error) { toast.error(errorMessage(error)); return }
+      await refreshProfile()
+      phoneForm.reset({ phone: '' })
+      toast.success('Mobile number saved')
+      return
+    }
     const { error } = await supabase.auth.updateUser({ phone })
     if (error) { toast.error(errorMessage(error)); return }
     toast.success(`OTP sent to ${phone}`)
@@ -198,12 +207,12 @@ function ContactTab({ profile }: { profile: ProfileRow }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Phone className="h-5 w-5" /> Mobile number</CardTitle>
-          <CardDescription>Verified by SMS OTP. Lets you sign in without a password.</CardDescription>
+          <CardDescription>{PHONE_AUTH_ENABLED ? 'Verified by SMS OTP. Lets you sign in without a password.' : 'Shared with owners when you send an enquiry.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="font-medium">{currentPhone || 'No mobile added'}</span>
-            {currentPhone && (user?.phone_confirmed_at
+            {currentPhone && PHONE_AUTH_ENABLED && (user?.phone_confirmed_at
               ? <Badge variant="success"><BadgeCheck className="h-3 w-3" /> Verified</Badge>
               : <Badge variant="warning">Unverified</Badge>)}
           </div>
@@ -212,7 +221,7 @@ function ContactTab({ profile }: { profile: ProfileRow }) {
               <Input id="ct-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 98xxxxxxxx" {...phoneForm.register('phone')} />
             </Field>
             <Button type="submit" variant="outline" loading={phoneForm.formState.isSubmitting}>
-              {currentPhone ? 'Change & verify' : 'Add & verify'}
+              {PHONE_AUTH_ENABLED ? (currentPhone ? 'Change & verify' : 'Add & verify') : (currentPhone ? 'Change number' : 'Save number')}
             </Button>
           </form>
         </CardContent>
