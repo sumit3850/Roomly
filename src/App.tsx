@@ -1,4 +1,6 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyWithReload as lazy } from '@/lib/lazyWithReload'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
@@ -40,6 +42,7 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
       <AuthProvider>
         <ScrollToTop />
+        <ErrorBoundary>
         <Suspense fallback={<Spinner />}>
           <Routes>
             <Route element={<AppLayout />}>
@@ -71,6 +74,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
+        </ErrorBoundary>
         <Toaster richColors position="top-center" closeButton />
       </AuthProvider>
     </BrowserRouter>
