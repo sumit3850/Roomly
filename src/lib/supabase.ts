@@ -21,6 +21,11 @@ export const supabase = createClient(url ?? 'http://localhost', key ?? 'missing'
 
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || window.location.origin + import.meta.env.BASE_URL).replace(/\/$/, '')
 
+/** SMS OTP needs a paid SMS provider in Supabase. Off unless VITE_ENABLE_PHONE_AUTH=true. */
+export const PHONE_AUTH_ENABLED = import.meta.env.VITE_ENABLE_PHONE_AUTH === 'true'
+/** "Continue with Google" (free) — enable after adding Google in Supabase → Auth → Providers. */
+export const GOOGLE_AUTH_ENABLED = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true'
+
 export const BUCKETS = {
   propertyImages: 'property-images',
   profileImages: 'profile-images',

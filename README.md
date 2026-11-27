@@ -18,7 +18,12 @@ In Supabase, go to **Authentication → URL Configuration**:
 - Set **Site URL** to your website address.
 - Add `http://localhost:5173/**` and `https://<your-site>/**` under **Redirect URLs**.
 
-Email sign-up works straight away. Phone (SMS OTP) sign-up only works after you connect an SMS provider; see section 4.
+Email sign-up and "Email code" login are free and work straight away.
+
+Optional free extras:
+- **6-digit code in the email:** in Supabase, go to **Authentication → Emails → Magic Link** and add `{{ .Token }}` to the template. Without it, users simply tap the link in the email.
+- **"Continue with Google":** enable Google under **Authentication → Providers** (needs a free Google Cloud OAuth client). Then set the GitHub repository variable `VITE_ENABLE_GOOGLE_AUTH` = `true`.
+- **SMS OTP:** hidden by default because every SMS provider is paid. Connect one (section 4), then set `VITE_ENABLE_PHONE_AUTH` = `true`.
 
 **Step 3: run the app**
 

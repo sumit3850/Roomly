@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Mail, Smartphone } from 'lucide-react'
-import { supabase, SITE_URL } from '@/lib/supabase'
+import { supabase, SITE_URL , PHONE_AUTH_ENABLED } from '@/lib/supabase'
+import { GoogleButton } from '@/components/auth/AltSignIn'
 import { toE164, errorMessage } from '@/lib/utils'
 import { AuthShell } from '@/components/layout/AuthShell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -163,14 +164,19 @@ export default function SignUp() {
       description="Find or list homes across the Andaman & Nicobar Islands"
       footer={<>Already have an account? <Link to="/login" className="font-medium text-primary hover:underline">Sign in</Link></>}
     >
-      <Tabs defaultValue="email">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="email"><Mail className="h-4 w-4" /> Email</TabsTrigger>
-          <TabsTrigger value="phone"><Smartphone className="h-4 w-4" /> Mobile</TabsTrigger>
-        </TabsList>
-        <TabsContent value="email"><EmailSignUp /></TabsContent>
-        <TabsContent value="phone"><PhoneSignUp /></TabsContent>
-      </Tabs>
+      <GoogleButton label="Sign up with Google" />
+      {PHONE_AUTH_ENABLED ? (
+        <Tabs defaultValue="email">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="email"><Mail className="h-4 w-4" /> Email</TabsTrigger>
+            <TabsTrigger value="phone"><Smartphone className="h-4 w-4" /> Mobile</TabsTrigger>
+          </TabsList>
+          <TabsContent value="email"><EmailSignUp /></TabsContent>
+          <TabsContent value="phone"><PhoneSignUp /></TabsContent>
+        </Tabs>
+      ) : (
+        <EmailSignUp />
+      )}
     </AuthShell>
   )
 }

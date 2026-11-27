@@ -50,7 +50,7 @@ export default function ForgotPassword() {
           </Field>
           <Button type="submit" className="w-full" loading={isSubmitting}>Send reset link</Button>
           <p className="text-center text-xs text-muted-foreground">
-            Registered with a mobile number? You don't need a password — <Link to="/login?tab=phone" className="text-primary hover:underline">sign in with OTP</Link>.
+            Don't want to reset it? <Link to="/login?tab=code" className="text-primary hover:underline">Sign in with an email code</Link> instead — no password needed.
           </p>
         </form>
       )}

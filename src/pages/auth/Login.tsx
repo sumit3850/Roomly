@@ -4,8 +4,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Mail, Smartphone } from 'lucide-react'
-import { supabase, SITE_URL } from '@/lib/supabase'
+import { KeyRound, Mail, Smartphone } from 'lucide-react'
+import { supabase, SITE_URL, PHONE_AUTH_ENABLED } from '@/lib/supabase'
+import { EmailCodeLogin, GoogleButton } from '@/components/auth/AltSignIn'
 import { errorMessage } from '@/lib/utils'
 import { AuthShell } from '@/components/layout/AuthShell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -123,13 +124,16 @@ export default function Login() {
       description="Sign in to manage listings, saved homes and enquiries"
       footer={<>New to Roomly? <Link to="/signup" className="font-medium text-primary hover:underline">Create an account</Link></>}
     >
-      <Tabs defaultValue={params.get('tab') === 'phone' ? 'phone' : 'email'}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="email"><Mail className="h-4 w-4" /> Email</TabsTrigger>
-          <TabsTrigger value="phone"><Smartphone className="h-4 w-4" /> Mobile OTP</TabsTrigger>
+      <GoogleButton next={next} />
+      <Tabs defaultValue={params.get('tab') === 'phone' && PHONE_AUTH_ENABLED ? 'phone' : params.get('tab') === 'code' ? 'code' : 'email'}>
+        <TabsList className={`grid w-full ${PHONE_AUTH_ENABLED ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsTrigger value="email"><KeyRound className="h-4 w-4" /> Password</TabsTrigger>
+          <TabsTrigger value="code"><Mail className="h-4 w-4" /> Email code</TabsTrigger>
+          {PHONE_AUTH_ENABLED && <TabsTrigger value="phone"><Smartphone className="h-4 w-4" /> SMS</TabsTrigger>}
         </TabsList>
         <TabsContent value="email"><EmailLogin next={next} /></TabsContent>
-        <TabsContent value="phone"><PhoneLogin next={next} /></TabsContent>
+        <TabsContent value="code"><EmailCodeLogin next={next} /></TabsContent>
+        {PHONE_AUTH_ENABLED && <TabsContent value="phone"><PhoneLogin next={next} /></TabsContent>}
       </Tabs>
     </AuthShell>
   )
