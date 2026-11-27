@@ -14,12 +14,7 @@ import { EmptyState, Spinner } from '@/components/ui/misc'
 import { fetchListingsByIds } from '@/components/tenant/listingQuery'
 import { errorMessage, formatDate, formatINR, timeAgo } from '@/lib/utils'
 import type { Enquiry, EnquiryStatus, Listing } from '@/types/db'
-
-export const enquiryBadge: Record<EnquiryStatus, { label: string; variant: 'warning' | 'success' | 'muted' }> = {
-  new: { label: 'Awaiting reply', variant: 'warning' },
-  responded: { label: 'Owner replied', variant: 'success' },
-  closed: { label: 'Closed', variant: 'muted' },
-}
+import { enquiryBadge } from '@/components/tenant/enquiryBadge'
 
 export default function MyEnquiries() {
   useDocumentTitle('My enquiries')
