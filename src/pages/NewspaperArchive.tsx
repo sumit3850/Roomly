@@ -33,6 +33,17 @@ const STATUS_STYLE: Record<Status, string> = {
 const SORT_KEYS = ['configuration', 'location_text', 'phones', 'rent_text', 'status', 'editionDate'] as const
 type SortKey = (typeof SORT_KEYS)[number]
 
+// Backup of tracking on this device, used only until the database table exists; then synced up.
+const pendingKey = (uid: string) => `roomly-ad-tracking-pending:${uid}`
+function readPending(uid: string): Record<string, Tracking> {
+  try { return JSON.parse(localStorage.getItem(pendingKey(uid)) || '{}') } catch { return {} }
+}
+function writePending(uid: string, data: Record<string, Tracking>) {
+  try { Object.keys(data).length ? localStorage.setItem(pendingKey(uid), JSON.stringify(data)) : localStorage.removeItem(pendingKey(uid)) } catch { /* ignore */ }
+}
+const isMissingTable = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === 'PGRST205' || e.code === '42P01' || /could not find the table|does not exist|schema cache/i.test(e.message ?? ''))
+
 const shortDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 const showPhone = (p: string) => p.replace(/^\+91/, '')
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -51,6 +62,7 @@ export default function NewspaperArchive() {
   const [q, setQ] = useState('')
   const [showHidden, setShowHidden] = useState(false)
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null)
+  const [needsDbSetup, setNeedsDbSetup] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -63,8 +75,25 @@ export default function NewspaperArchive() {
     setPubs((p.data ?? []) as Publication[])
     setAds((a.data ?? []) as Advertisement[])
     if (user) {
+      const pending = readPending(user.id)
       const t = await supabase.from('newspaper_ad_tracking').select('advertisement_id, status, notes, hidden').eq('user_id', user.id)
-      setTracking(Object.fromEntries(((t.data ?? []) as Tracking[]).map((r) => [r.advertisement_id, r])))
+      if (isMissingTable(t.error)) {
+        setNeedsDbSetup(true)
+        setTracking(pending)
+      } else {
+        setNeedsDbSetup(false)
+        const fromDb = Object.fromEntries(((t.data ?? []) as Tracking[]).map((r) => [r.advertisement_id, r]))
+        // copy anything saved on this device while the table was missing into the account
+        const toSync = Object.values(pending)
+        if (toSync.length) {
+          const { error } = await supabase.from('newspaper_ad_tracking').upsert(
+            toSync.map((r) => ({ user_id: user.id, advertisement_id: r.advertisement_id, status: r.status, notes: r.notes, hidden: r.hidden })),
+            { onConflict: 'user_id,advertisement_id' },
+          )
+          if (!error) { writePending(user.id, {}); toast.success(`${toSync.length} saved status/note(s) moved to your account`) }
+        }
+        setTracking({ ...fromDb, ...pending })
+      }
     } else {
       setTracking({})
     }
@@ -127,7 +156,11 @@ export default function NewspaperArchive() {
       { user_id: user.id, advertisement_id: adId, status: next.status, notes: next.notes, hidden: next.hidden },
       { onConflict: 'user_id,advertisement_id' },
     )
-    if (error) {
+    if (isMissingTable(error)) {
+      // keep it on this device; it is copied into the account automatically once the table exists
+      writePending(user.id, { ...readPending(user.id), [adId]: next })
+      setNeedsDbSetup(true)
+    } else if (error) {
       setTracking((t) => { const c = { ...t }; if (prev) c[adId] = prev; else delete c[adId]; return c })
       toast.error(errorMessage(error))
     }
@@ -275,6 +308,12 @@ export default function NewspaperArchive() {
           </div>
 
           <div className="container px-3 pt-3">
+            {needsDbSetup && user && (
+              <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                <strong>Status &amp; notes are saved on this device for now.</strong> They move into your account automatically once the
+                database update is installed{isAdmin ? ' (run supabase/SETUP_ALL_IN_ONE.sql in Supabase → SQL Editor)' : ''}.
+              </div>
+            )}
             {loading ? (
               <Spinner label="Loading listings…" />
             ) : rows.length === 0 ? (

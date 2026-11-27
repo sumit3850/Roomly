@@ -22,3 +22,6 @@ drop policy if exists "ad tracking: own" on public.newspaper_ad_tracking;
 create policy "ad tracking: own" on public.newspaper_ad_tracking for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 grant select, insert, update, delete on public.newspaper_ad_tracking to authenticated;
+
+-- make the new table visible to the API immediately
+notify pgrst, 'reload schema';
