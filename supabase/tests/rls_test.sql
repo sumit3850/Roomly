@@ -157,4 +157,15 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'PASS: signed-out visitors cannot upload papers'; end $$;
 reset role;
 
+-- personal advert tracking is private
+insert into public.newspaper_publications (id, name, edition_date) values ('20000000-0000-0000-0000-000000000009', 'track test', '2026-11-19');
+insert into public.newspaper_advertisements (id, publication_id, configuration, phones) values ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000009', '2 BHK', array['+919800000003']);
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+insert into public.newspaper_ad_tracking (user_id, advertisement_id, status, notes) values (auth.uid(), '30000000-0000-0000-0000-000000000001', 'Contacted', 'call back');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect((select count(*) from public.newspaper_ad_tracking) = 0, 'advert status/notes are private to each user');
+reset role;
+delete from public.newspaper_publications where id = '20000000-0000-0000-0000-000000000009';
+select pg_temp.expect((select count(*) from public.newspaper_ad_tracking where advertisement_id = '30000000-0000-0000-0000-000000000001') = 0, 'deleting a paper removes its adverts and their tracking rows');
+
 rollback;
