@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSaved } from '@/hooks/useSaved'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ToLetButton } from '@/components/layout/ToLetButton'
 import { PropertyCard, PropertyCardSkeleton } from '@/components/property/PropertyCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -82,6 +83,7 @@ export default function TenantDashboard() {
     <div className="container py-6">
       <PageHeader title={`Hello${firstName ? `, ${firstName}` : ''} 👋`} description="Your home search at a glance."
         actions={isOwner ? <Button asChild variant="outline"><Link to="/dashboard/owner"><Building2 /> Owner dashboard</Link></Button> : undefined} />
+      <ToLetButton className="mb-6" />
 
       <form onSubmit={search} className="mb-6 flex gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by area, landmark or island…" aria-label="Quick search" />

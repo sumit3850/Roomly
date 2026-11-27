@@ -9,6 +9,7 @@ import { supabase, BUCKETS, publicUrl } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ToLetButton } from '@/components/layout/ToLetButton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -93,6 +94,7 @@ export default function OwnerDashboard() {
         description="Manage your listings, enquiries and tenancies."
         actions={<Button asChild><Link to="/properties/new"><PlusCircle /> Add property</Link></Button>}
       />
+      <ToLetButton className="mb-6" />
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Listings" value={stats.total} icon={<Building2 />} />
         <StatCard label="Active" value={stats.active} icon={<Home />} />

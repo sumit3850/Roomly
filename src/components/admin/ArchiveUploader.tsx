@@ -7,17 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field } from '@/components/ui/misc'
-import { cn, errorMessage } from '@/lib/utils'
+import { errorMessage } from '@/lib/utils'
 import { extractPdfText, ocrPdfPages, parseClassifieds, parsePageRange, type ExtractOpt, type ParsedAd } from '@/components/owner/parseClassifieds'
 
-const OPTS: { value: ExtractOpt; label: string }[] = [
-  { value: 'tolet', label: 'TO LET / Rent' },
-  { value: 'sale', label: 'For sale' },
-  { value: 'wanted', label: 'Wanted / Need' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'furnished', label: 'Furnished' },
-  { value: 'all', label: 'All classifieds' },
-]
+// Only home rentals: 1–5+ BHK and single rooms (no commercial, sale, wanted or job ads)
+const RENTAL_ONLY: ExtractOpt[] = ['rental']
+
 
 /** Any signed-in user: upload an edition PDF/TXT, extract classifieds in the browser, review and save. */
 export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
@@ -25,7 +20,6 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [newspaper, setNewspaper] = useState('Daily Telegrams')
   const [editionDate, setEditionDate] = useState(new Date().toISOString().slice(0, 10))
-  const [opts, setOpts] = useState<Set<ExtractOpt>>(new Set(['tolet', 'sale', 'wanted']))
   const [status, setStatus] = useState<string | null>(null)
   const [pageRange, setPageRange] = useState('')
   const [publicationId, setPublicationId] = useState<string | null>(null)
@@ -36,7 +30,6 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
   async function process() {
     if (!file || !user) return toast.error('Choose a PDF or TXT file')
     if (!editionDate) return toast.error('Choose the edition date')
-    if (!opts.size) return toast.error('Pick at least one extraction option')
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     const isTxt = file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')
     if (!isPdf && !isTxt) return toast.error('Only PDF or TXT files are supported')
@@ -100,15 +93,15 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
         text = await file.text()
       }
       setStatus('Finding classifieds…')
-      let parsed = parseClassifieds(text, [...opts])
+      let parsed = parseClassifieds(text, RENTAL_ONLY)
       if (wanted) parsed = parsed.filter((a) => a.page_number == null || wanted!.has(a.page_number))
       if (ownsPub) await supabase.from('newspaper_publications').update({ page_count: pages, status: parsed.length ? 'processing' : 'failed' }).eq('id', pubId)
       setAds(parsed)
       setSelected(new Set(parsed.map((_, i) => i)))
       if (!parsed.length) {
         toast.warning(usedOcr
-          ? 'No adverts found on the pages read. Check the page numbers of the classifieds section, or tick "All classifieds" and try again.'
-          : 'No adverts found. Try ticking "All classifieds", or set the page numbers of the classifieds section.')
+          ? 'No home-rental adverts found on the pages read. Check the page numbers of the classifieds section.'
+          : 'No home-rental adverts found. Try setting the page numbers of the classifieds section.')
       } else {
         toast.success(`Found ${parsed.length} advert(s). Review and save.`)
       }
@@ -158,18 +151,7 @@ export function ArchiveUploader({ onSaved }: { onSaved: () => void }) {
         <Field label="Pages to read (optional)" htmlFor="np-pages" hint="e.g. 6-8 for the classifieds pages. Leave empty to read every page. Scanned pages take about 15–40 seconds each.">
           <Input id="np-pages" value={pageRange} onChange={(e) => setPageRange(e.target.value)} placeholder="All pages" inputMode="numeric" className="sm:max-w-xs" />
         </Field>
-        <div className="flex flex-wrap gap-2">
-          {OPTS.map((o) => {
-            const on = opts.has(o.value)
-            return (
-              <button key={o.value} type="button" aria-pressed={on}
-                onClick={() => setOpts((prev) => { const s = new Set(prev); on ? s.delete(o.value) : s.add(o.value); return s })}
-                className={cn('rounded-full border px-3 py-1 text-sm', on ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent')}>
-                {o.label}
-              </button>
-            )
-          })}
-        </div>
+        <p className="text-xs text-muted-foreground">Only home rentals are added: 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK and single rooms. Commercial, sale, job and other adverts are skipped.</p>
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={() => void process()} loading={!!status && !ads.length} disabled={!file || (!!status)}><Upload /> Upload &amp; extract</Button>
           {status && <span className="text-sm text-muted-foreground" aria-live="polite">{status}</span>}

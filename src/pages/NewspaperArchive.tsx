@@ -13,6 +13,7 @@ import { EmptyState, Spinner } from '@/components/ui/misc'
 import { ArchiveUploader } from '@/components/admin/ArchiveUploader'
 import { cn, errorMessage } from '@/lib/utils'
 import type { Advertisement, Publication } from '@/types/db'
+import { RESIDENTIAL_CONFIGS, isResidentialConfig } from '@/components/owner/parseClassifieds'
 
 type Status = 'Vacant' | 'Contacted' | 'Visited' | 'Filled'
 const STATUSES: Status[] = ['Vacant', 'Contacted', 'Visited', 'Filled']
@@ -104,7 +105,9 @@ export default function NewspaperArchive() {
 
   const pubById = useMemo(() => Object.fromEntries(pubs.map((p) => [p.id, p])), [pubs])
 
-  const rows: Row[] = useMemo(() => ads.map((a) => {
+  // Home rentals only (1–5+ BHK, single rooms); commercial/sale/job/other adverts are never listed
+  const rentalAds = useMemo(() => ads.filter((a) => isResidentialConfig(a.configuration)), [ads])
+  const rows: Row[] = useMemo(() => rentalAds.map((a) => {
     const t = tracking[a.id]
     const pub = pubById[a.publication_id]
     return {
@@ -115,11 +118,11 @@ export default function NewspaperArchive() {
       edition: pub ? shortDate(pub.edition_date) : '—',
       editionDate: pub?.edition_date ?? '',
     }
-  }), [ads, tracking, pubById])
+  }), [rentalAds, tracking, pubById])
 
   const visibleAll = rows.filter((r) => !r.hidden)
   const hiddenCount = rows.length - visibleAll.length
-  const types = useMemo(() => [...new Set(rows.map((r) => r.configuration || 'Other'))].sort(), [rows])
+  const types = RESIDENTIAL_CONFIGS
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -429,7 +432,7 @@ export default function NewspaperArchive() {
               {pubs.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">No papers loaded yet.</p>
               ) : pubs.map((p) => {
-                const count = ads.filter((a) => a.publication_id === p.id).length
+                const count = rentalAds.filter((a) => a.publication_id === p.id).length
                 return (
                   <div key={p.id} className="flex items-center gap-3 border-b px-4 py-3 last:border-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-lg">📄</div>
